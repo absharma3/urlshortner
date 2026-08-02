@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.urlshortner.service.UrlServiceTest$GetOriginalUrl" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-08-02T16:15:02.365Z" hostname="abhimanyu-sharma-mbp-2a" time="0.069">
+  <properties/>
+  <testcase name="delegatesToRedisCacheServiceAndReturnsResult()" classname="com.urlshortner.service.UrlServiceTest$GetOriginalUrl" time="0.069"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

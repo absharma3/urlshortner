@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.urlshortner.util.UrlNormalizerTest$SchemeAndHost" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-08-02T16:15:02.512Z" hostname="abhimanyu-sharma-mbp-2a" time="0.002">
+  <properties/>
+  <testcase name="preservesExplicitHttpScheme()" classname="com.urlshortner.util.UrlNormalizerTest$SchemeAndHost" time="0.0"/>
+  <testcase name="normalize(&quot;&quot;HTTPS://Example.com&quot;&quot;) == &quot;&quot;https://example.com&quot;&quot;" classname="com.urlshortner.util.UrlNormalizerTest$SchemeAndHost" time="0.0"/>
+  <testcase name="normalize(&quot;&quot;HTTP://EXAMPLE.COM/path&quot;&quot;) == &quot;&quot;http://example.com/path&quot;&quot;" classname="com.urlshortner.util.UrlNormalizerTest$SchemeAndHost" time="0.0"/>
+  <testcase name="normalize(&quot;&quot;https://EXAMPLE.com&quot;&quot;) == &quot;&quot;https://example.com&quot;&quot;" classname="com.urlshortner.util.UrlNormalizerTest$SchemeAndHost" time="0.0"/>
+  <testcase name="normalize(&quot;&quot;HTTPS://SUB.Example.COM/x&quot;&quot;) == &quot;&quot;https://sub.example.com/x&quot;&quot;" classname="com.urlshortner.util.UrlNormalizerTest$SchemeAndHost" time="0.0"/>
+  <testcase name="defaultsToHttpsWhenSchemeMissing()" classname="com.urlshortner.util.UrlNormalizerTest$SchemeAndHost" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

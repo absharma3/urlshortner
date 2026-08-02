@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.urlshortner.util.UrlValidatorDnsMockTest$FailClosedOnBlockedRange" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-08-02T16:15:02.517Z" hostname="abhimanyu-sharma-mbp-2a" time="0.001">
+  <properties/>
+  <testcase name="resolvedPrivateRangeIsRejected()" classname="com.urlshortner.util.UrlValidatorDnsMockTest$FailClosedOnBlockedRange" time="0.0"/>
+  <testcase name="resolvedPublicAddressIsAccepted()" classname="com.urlshortner.util.UrlValidatorDnsMockTest$FailClosedOnBlockedRange" time="0.001"/>
+  <testcase name="resolvedLoopbackIsRejected()" classname="com.urlshortner.util.UrlValidatorDnsMockTest$FailClosedOnBlockedRange" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.urlshortner.util.UrlValidatorDnsMockTest$FailOpenOnResolutionFailure" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-08-02T16:15:02.518Z" hostname="abhimanyu-sharma-mbp-2a" time="0.001">
+  <properties/>
+  <testcase name="unresolvableHostIsAcceptedWithWarning()" classname="com.urlshortner.util.UrlValidatorDnsMockTest$FailOpenOnResolutionFailure" time="0.001"/>
+  <system-out><![CDATA[2026-08-02T21:45:02.518+05:30  INFO 27145 --- [urlshortner] [    Test worker] com.urlshortner.util.UrlValidator        : Accepting URL with unresolvable/slow host='not-really-a-host.example.invalid' — skipping address-range check
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.urlshortner.util.UrlHashGeneratorTest$SaltAttempt" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-08-02T16:15:02.505Z" hostname="abhimanyu-sharma-mbp-2a" time="0.001">
+  <properties/>
+  <testcase name="nonZeroSaltProducesDifferentCode()" classname="com.urlshortner.util.UrlHashGeneratorTest$SaltAttempt" time="0.0"/>
+  <testcase name="saltIsDeterministicAcrossAttempts()" classname="com.urlshortner.util.UrlHashGeneratorTest$SaltAttempt" time="0.0"/>
+  <testcase name="saltAttemptZeroMatchesUnsaltedInput()" classname="com.urlshortner.util.UrlHashGeneratorTest$SaltAttempt" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

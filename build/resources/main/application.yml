@@ -1,0 +1,124 @@
+spring:
+  application:
+    name: urlshortner
+  threads:
+    virtual:
+      enabled: true
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/urlshortener?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&rewriteBatchedStatements=true}
+    username: ${SPRING_DATASOURCE_USERNAME:urlshortener}
+    password: ${SPRING_DATASOURCE_PASSWORD:urlshortener}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      pool-name: urlshortener-hikari
+      maximum-pool-size: 50
+      minimum-idle: 10
+      connection-timeout: 3000
+      validation-timeout: 2000
+      idle-timeout: 60000
+      max-lifetime: 1800000
+      keepalive-time: 30000
+      leak-detection-threshold: 10000
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        jdbc:
+          batch_size: 100
+          time_zone: UTC
+        order_inserts: true
+        order_updates: true
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+      timeout: 200ms
+      connect-timeout: 500ms
+      lettuce:
+        shutdown-timeout: 100ms
+        pool:
+          enabled: true
+          max-active: 64
+          max-idle: 32
+          min-idle: 8
+          max-wait: 100ms
+          time-between-eviction-runs: 30s
+
+server:
+  port: 8080
+  # Deliberately NOT setting forward-headers-strategy: that would make the framework rewrite
+  # request.getRemoteAddr() with XFF values before RateLimitingInterceptor sees them, which would
+  # bypass our own trusted-proxy allowlist. `app.base-url` (per-env env var) is used consistently
+  # for both `Location` and `shortUrl` so they never diverge.
+  compression:
+    enabled: true
+  tomcat:
+    max-connections: 20000
+    accept-count: 500
+
+management:
+  server:
+    # Bind actuator to a separate port so it isn't reachable on the public 8080 by default.
+    # Docker compose exposes only 8080; operators can port-forward 8081 for admin access.
+    port: ${MANAGEMENT_SERVER_PORT:8081}
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+# OpenAPI + Swagger UI (Springdoc). Both flags gated by env var so prod deployments can flip
+# them off with a single environment variable.
+springdoc:
+  api-docs:
+    enabled: ${SPRINGDOC_ENABLED:true}
+  swagger-ui:
+    enabled: ${SPRINGDOC_ENABLED:true}
+
+app:
+  base-url: ${APP_BASE_URL:http://localhost:8080}
+  short-code:
+    length: 6
+  cache:
+    ttl-seconds: 86400
+    negative-ttl-seconds: 60           # Absorbs 404-storms on unknown shortCodes.
+    stampede-lock-ttl-ms: 3000
+    stampede-wait-before-retry-ms: 50
+  clicks:
+    flush-batch-size: 1000
+    flush-fixed-delay-ms: 5000
+  expiry:
+    fixed-delay-ms: 600000              # 10 min between expired-row sweeps.
+    initial-delay-ms: 60000
+    grace-seconds: 300
+    batch-limit: 5000
+  ratelimit:
+    window-seconds: 60
+    create-limit: 10        # POST /api/v1/urls — DB write + hash + Redis; tight cap
+    redirect-limit: 600     # GET /{shortCode}  — cache-served, generous cap
+    stats-limit: 60         # GET /api/v1/urls/{code}/stats — DB read; moderate cap
+  security:
+    # CSV of TCP peer IPs whose X-Forwarded-For / X-Real-IP headers may be trusted.
+    # Leave empty to always use the direct TCP peer address (safe default; enable only when
+    # a load balancer or reverse proxy known to sanitise these headers sits in front).
+    trusted-proxies: ${APP_TRUSTED_PROXIES:}
+    dns-timeout-ms: 1500     # Bounds UrlValidator's SSRF resolution latency.
+
+logging:
+  level:
+    com.urlshortner: INFO
+    # UNIQUE-constraint violations on the shorten path are an expected race we recover from
+    # (see UrlService.shortenDeterministically). Hibernate would otherwise log the stack trace
+    # at ERROR before our catch fires — downgrade to WARN so real SQL errors are still visible
+    # but the expected race doesn't get flagged as a hard error.
+    org.hibernate.engine.jdbc.spi.SqlExceptionHelper: WARN

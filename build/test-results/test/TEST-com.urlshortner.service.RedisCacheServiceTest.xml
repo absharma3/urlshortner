@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.urlshortner.service.RedisCacheServiceTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-08-02T16:15:01.542Z" hostname="abhimanyu-sharma-mbp-2a" time="0.629">
+  <properties/>
+  <testcase name="stampedeProtectionCollapsesConcurrentLoaderCalls()" classname="com.urlshortner.service.RedisCacheServiceTest" time="0.292"/>
+  <testcase name="negativeCacheShortCircuitsLoader()" classname="com.urlshortner.service.RedisCacheServiceTest" time="0.115"/>
+  <system-out><![CDATA[2026-08-02T21:45:01.542+05:30  INFO 27145 --- [urlshortner] [    Test worker] tc.redis:7-alpine                        : Creating container for image: redis:7-alpine
+2026-08-02T21:45:01.584+05:30  INFO 27145 --- [urlshortner] [    Test worker] tc.redis:7-alpine                        : Container redis:7-alpine is starting: aa76a46d70f4b223da982771a685b9d3dbd3bea0a15b33a8a322a18aab50855c
+2026-08-02T21:45:01.763+05:30  INFO 27145 --- [urlshortner] [    Test worker] tc.redis:7-alpine                        : Container redis:7-alpine started in PT0.220491S
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

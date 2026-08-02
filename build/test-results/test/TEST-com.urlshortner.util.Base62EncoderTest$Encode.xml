@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.urlshortner.util.Base62EncoderTest$Encode" tests="12" skipped="0" failures="0" errors="0" timestamp="2026-08-02T16:15:02.496Z" hostname="abhimanyu-sharma-mbp-2a" time="0.005">
+  <properties/>
+  <testcase name="encode(&quot;0&quot;) == &quot;&quot;0&quot;&quot;" classname="com.urlshortner.util.Base62EncoderTest$Encode" time="0.001"/>
+  <testcase name="encode(&quot;1&quot;) == &quot;&quot;1&quot;&quot;" classname="com.urlshortner.util.Base62EncoderTest$Encode" time="0.001"/>
+  <testcase name="encode(&quot;9&quot;) == &quot;&quot;9&quot;&quot;" classname="com.urlshortner.util.Base62EncoderTest$Encode" time="0.0"/>
+  <testcase name="encode(&quot;10&quot;) == &quot;&quot;A&quot;&quot;" classname="com.urlshortner.util.Base62EncoderTest$Encode" time="0.0"/>
+  <testcase name="encode(&quot;35&quot;) == &quot;&quot;Z&quot;&quot;" classname="com.urlshortner.util.Base62EncoderTest$Encode" time="0.001"/>
+  <testcase name="encode(&quot;36&quot;) == &quot;&quot;a&quot;&quot;" classname="com.urlshortner.util.Base62EncoderTest$Encode" time="0.0"/>
+  <testcase name="encode(&quot;61&quot;) == &quot;&quot;z&quot;&quot;" classname="com.urlshortner.util.Base62EncoderTest$Encode" time="0.0"/>
+  <testcase name="encode(&quot;62&quot;) == &quot;&quot;10&quot;&quot;" classname="com.urlshortner.util.Base62EncoderTest$Encode" time="0.0"/>
+  <testcase name="encode(&quot;3843&quot;) == &quot;&quot;zz&quot;&quot;" classname="com.urlshortner.util.Base62EncoderTest$Encode" time="0.0"/>
+  <testcase name="encode(&quot;3844&quot;) == &quot;&quot;100&quot;&quot;" classname="com.urlshortner.util.Base62EncoderTest$Encode" time="0.0"/>
+  <testcase name="rejectsNegativeValues()" classname="com.urlshortner.util.Base62EncoderTest$Encode" time="0.001"/>
+  <testcase name="encodesLongMaxValueWithoutOverflow()" classname="com.urlshortner.util.Base62EncoderTest$Encode" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
