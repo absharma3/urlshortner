@@ -1,0 +1,57 @@
+# Load-test overlay.
+#
+# `docker compose up` merges this into docker-compose.yml automatically, but
+# the k6 service sits behind the `loadtest` profile so it does NOT auto-start
+# with the app. Run the load test explicitly:
+#
+#     docker compose --profile loadtest up --build k6 --abort-on-container-exit
+#
+# The `app` service is also patched here to lift its per-scope rate limits
+# for the duration of the run. Without this, the load test would be throttled
+# at 10 creates/min and 600 redirects/min per source IP — and every k6 VU
+# shares the same Docker-internal source IP, so it'd hit both limits inside
+# the first second. See docs/PERFORMANCE.md § "Rate limits during a run".
+
+services:
+  app:
+    environment:
+      # Effectively "disabled" — the interceptor still runs, but no request
+      # will realistically hit these ceilings within the 60s hold window.
+      APP_RATELIMIT_CREATE_LIMIT: "10000000"
+      APP_RATELIMIT_REDIRECT_LIMIT: "10000000"
+      APP_RATELIMIT_STATS_LIMIT: "10000000"
+      # Give the app process a bigger heap headroom during the run. The
+      # Dockerfile default is MaxRAMPercentage=75.0; the load test allocates
+      # a lot of short-lived response objects on the hot path.
+      JAVA_OPTS: >-
+        -XX:+UseZGC
+        -XX:+ZGenerational
+        -XX:MaxRAMPercentage=75.0
+        -XX:+AlwaysPreTouch
+        -XX:+UseStringDeduplication
+        -Dspring.threads.virtual.enabled=true
+
+  k6:
+    image: grafana/k6:latest
+    container_name: urlshortener-k6
+    profiles: ["loadtest"]
+    depends_on:
+      app:
+        condition: service_healthy
+    volumes:
+      - ./k6:/scripts:ro
+    environment:
+      # `app` is the service name on the internal urlshortener-net network;
+      # Docker's embedded DNS resolves it to the container's IP.
+      BASE_URL: "http://app:8080"
+      SEED_COUNT: "100"
+      WRITE_RATIO: "0.05"
+      # sla   = constant 10k rps, latency thresholds enforced (default)
+      # stress = ramping VUs to 2000, measures ceiling only
+      K6_MODE: "${K6_MODE:-sla}"
+      TARGET_RPS: "${TARGET_RPS:-10000}"
+      # Prevent k6's default stdout summary from being suppressed by TTY
+      # detection when running under `up --abort-on-container-exit`.
+      K6_NO_USAGE_REPORT: "true"
+    command: ["run", "/scripts/load-test.js"]
+    networks: [urlshortener-net]

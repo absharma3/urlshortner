@@ -45,10 +45,10 @@ spring:
         shutdown-timeout: 100ms
         pool:
           enabled: true
-          max-active: 64
-          max-idle: 32
-          min-idle: 8
-          max-wait: 100ms
+          max-active: 512
+          max-idle: 256
+          min-idle: 64
+          max-wait: 1000ms
           time-between-eviction-runs: 30s
 
 server:
