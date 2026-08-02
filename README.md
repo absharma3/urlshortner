@@ -61,7 +61,7 @@ Springdoc-generated OpenAPI / Swagger UI. Full contract in `openapi.yaml`.
 
 ## Architecture
 
-```mermaid
+```
 flowchart LR
     Client([Client])
     LB[Reverse proxy<br/>optional]
