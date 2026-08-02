@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.urlshortner.util.UrlValidatorDnsMockTest$StaticHostBlocklist" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-08-02T16:15:02.519Z" hostname="abhimanyu-sharma-mbp-2a" time="0.0">
-  <properties/>
-  <testcase name="localhostBlockedRegardlessOfResolver()" classname="com.urlshortner.util.UrlValidatorDnsMockTest$StaticHostBlocklist" time="0.0"/>
-  <system-out><![CDATA[]]></system-out>
-  <system-err><![CDATA[]]></system-err>
-</testsuite>

@@ -245,7 +245,7 @@ class UrlServiceTest {
     }
 
     private static UrlHashGenerator realHashGenerator() {
-        return new UrlHashGenerator(new Base62Encoder(), 6);
+        return new UrlHashGenerator(new Base62Encoder(), 8);
     }
 
     private static ServiceMetrics stubMetrics() {

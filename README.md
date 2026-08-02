@@ -27,7 +27,7 @@ Springdoc-generated OpenAPI / Swagger UI. Full contract in `openapi.yaml`.
 
 ## Highlights
 
-- **Deterministic shortening.** Same URL always produces the same short code (MurmurHash3-32 →
+- **Deterministic shortening.** Same URL always produces the same short code (MurmurHash3-128 →
   Base62). No `INCR`-driven counter, no primary-key coupling — dedup happens naturally through
   a `UNIQUE` short-code lookup.
 - **Salt-loop collision resolution.** On the rare hash collision (two different URLs hashing to
@@ -118,7 +118,7 @@ flowchart LR
 3. If a `customAlias` was supplied and it's not on the reserved list, we look it up and either
    return the existing row (same URL) or throw 409 (different URL).
 4. Otherwise we enter the salt loop:
-    - `hash(normalizedUrl, saltAttempt=n)` → 6-char Base62 shortCode.
+    - `hash(normalizedUrl, saltAttempt=n)` → 8-char Base62 shortCode.
     - `findByShortCode(shortCode)` — if it exists with the same URL, we're done (1-to-1 dedup);
       if it exists with a different URL, `saltAttempt++`.
     - Otherwise `saveAndFlush`. On `DataIntegrityViolationException` (unique-constraint race) or
@@ -152,14 +152,17 @@ The naive shortener stores an auto-incremented row and encodes the ID as Base62.
 but every write to a specific URL creates a new short code — the second POST for the same URL
 allocates a fresh ID, fresh row, fresh code. Users complain, DB bloats, cache thrashes.
 
-We use MurmurHash3-32 of the normalized URL, Base62-encoded and padded to six characters. Same
-URL, same code — always. A duplicate POST is a `findByShortCode` + return. No INSERT, no ID
-allocator, no dedup index (V3 dropped the SHA-256 hash column that was added in V2 for that).
+We use MurmurHash3-128 of the normalized URL (low 64 bits, reduced mod 62⁸), Base62-encoded and
+padded to eight characters. Same URL, same code — always. A duplicate POST is a `findByShortCode`
++ return. No INSERT, no ID allocator, no dedup index (V3 dropped the SHA-256 hash column that
+was added in V2 for that).
 
-Trade-off: two different URLs might hash to the same 32-bit code (birthday-paradox territory
-around ~65k URLs). We handle it via a **salt loop** — retry with `url + "_salt_" + n` until we
-find an unused code. Deterministic re-hashing means a duplicate POST for the *loser* of a
-collision still stabilizes on the same second-attempt code.
+Trade-off: two different URLs can still collide inside the 62⁸ ≈ 2.18×10¹⁴ code space. At the
+design target of ~10M URLs/year that's roughly 0.2 expected collisions (birthday paradox), but
+custom-alias contention and adversarial input can still force one — so we handle it with a
+**salt loop**, retrying with `url + "_salt_" + n` until we find an unused code. Deterministic
+re-hashing means a duplicate POST for the *loser* of a collision still stabilizes on the same
+second-attempt code.
 
 ### No `@Transactional` on `shortenUrl`
 
@@ -228,7 +231,7 @@ endpoint via `curl`.
 | Persistence | MySQL 8, Hibernate ORM 7, HikariCP | Standard, robust, `utf8mb4_bin` for case-sensitive short codes |
 | Cache & side-channel | Redis 7 (Lettuce client, connection pool via commons-pool2) | Single dependency covers cache, rate limit, click aggregation, single-flight lock |
 | Migrations | Flyway (starter-flyway + flyway-mysql), 3 versioned files | Additive schema evolution; sqL files under `src/main/resources/db/migration/` |
-| Hashing | Guava `Hashing.murmur3_32_fixed()` | Fast, deterministic, non-cryptographic — dedup doesn't need collision resistance |
+| Hashing | Guava `Hashing.murmur3_128()` (low 64 bits, mod 62⁸) | Fast, deterministic, non-cryptographic — dedup doesn't need collision resistance |
 | API docs | Springdoc OpenAPI 2.8 → Swagger UI | Auto-generated from controller annotations; matches `openapi.yaml` |
 | Tests | JUnit 5, Mockito, AssertJ, Testcontainers (MySQL + Redis) | Real containers for integration tests; H2 is deliberately excluded |
 | Build | Gradle 9 with `foojay-resolver-convention` | Auto-provisions JDK 21 to `~/.gradle/jdks/` — zero manual JDK install |
@@ -403,10 +406,11 @@ Called out here so evaluators aren't surprised.
   delta from Redis before the batch UPDATE. If MySQL fails after `GETDEL`, we `SADD` the code
   back into the active-keys set — the *counter* value is lost. Bounded to <= 5s of clicks
   (default flush interval).
-- **32-bit hash space.** MurmurHash3-32 collides at ~65k URLs (birthday paradox). Handled via
-  the salt loop, but at extreme scale you'd want to widen to 64-bit and re-pad. Current 6-char
-  Base62 space is 5.7×10¹⁰, so the *code* space is fine — it's the hash function width that
-  bounds practical collision-free density.
+- **Code space, not hash width, is the ceiling.** The 128-bit hash is reduced mod 62⁸ before
+  Base62 encoding, so the ~2.18×10¹⁴-code output space is the birthday-paradox denominator. That
+  is comfortable at 10M URLs/year (~0.2 expected collisions) but not infinite — pushing an order
+  of magnitude past design targets means bumping `app.short-code.length` (values up to 10 fit in
+  a `long`; beyond that `Base62Encoder` would need `BigInteger`).
 - **Springdoc + Swagger UI ship enabled by default.** Turn off via `SPRINGDOC_ENABLED=false`
   in prod if you don't want the schema/UI exposed.
 - **Actuator on port 8081 by default.** Compose exposes only 8080 externally; if operators

@@ -9,7 +9,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 class UrlHashGeneratorTest {
 
-    private static final int SHORT_CODE_LENGTH = 6;
+    private static final int SHORT_CODE_LENGTH = 8;
 
     private final UrlHashGenerator generator =
             new UrlHashGenerator(new Base62Encoder(), SHORT_CODE_LENGTH);
@@ -75,9 +75,9 @@ class UrlHashGeneratorTest {
 
         @ParameterizedTest(name = "output is exactly {0} chars for \"{1}\"")
         @org.junit.jupiter.params.provider.CsvSource({
-                "6, https://example.com/",
-                "6, https://a.example.com/deep",
-                "6, https://example.com/some/very/long/path?with=many&query=parameters"
+                "8, https://example.com/",
+                "8, https://a.example.com/deep",
+                "8, https://example.com/some/very/long/path?with=many&query=parameters"
         })
         void outputIsFixedLength(int expectedLen, String url) {
             String code = generator.generateShortCode(url, 0);
@@ -92,7 +92,7 @@ class UrlHashGeneratorTest {
         })
         void outputIsStrictAlphanumeric(String url) {
             String code = generator.generateShortCode(url, 0);
-            assertThat(code).matches("^[a-zA-Z0-9]{6}$");
+            assertThat(code).matches("^[a-zA-Z0-9]{8}$");
         }
     }
 
