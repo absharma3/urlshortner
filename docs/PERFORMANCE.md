@@ -103,7 +103,7 @@ Do **not** set `tcp_tw_recycle` — removed in Linux 4.12 and hostile to NAT.
 
 ## 3. HikariCP (MySQL connection pool)
 
-Current settings live in `src/main/resources/application.yml:12`:
+Current settings live in `src/main/resources/application.yml` (`spring.datasource.hikari`):
 
 ```yaml
 maximum-pool-size: 50
@@ -143,25 +143,33 @@ SET GLOBAL innodb_flush_log_at_trx_commit = 2; -- optional: batch fsyncs
 
 ## 4. Redis Lettuce pool
 
-Current settings (`application.yml:44`):
+Current settings (`application.yml`, `spring.data.redis.lettuce.pool`):
 
 ```yaml
 lettuce:
   pool:
-    max-active: 64
-    max-idle:   32
-    min-idle:   8
-    max-wait:   100ms
+    max-active: 512
+    max-idle:   256
+    min-idle:   64
+    max-wait:   1000ms
 ```
 
-At 10k QPS with virtual threads, each Redis round-trip (~0.3 ms on localhost
-Docker) means a single connection can service ~3,000 ops/s. 64 connections
-gives ~190k ops/s of headroom — comfortable, since each redirect is 1–2 Redis
-calls.
+Each redirect hits Redis ~4 times on the hot path (`EVALSHA` cache lookup +
+`GET` fallback + `INCR` click counter + `PEXPIRE`). At 10k QPS that's 40k
+Redis ops/s. On loopback Docker each round-trip is ~0.2 ms if the pool has
+slack; under contention it rises quickly. Empirically, dropping from
+`max-active: 64` to `512` cut per-op Lettuce latency by ~30% at 2000-VU
+stress load.
 
-`max-wait: 100ms` is important: if it's `-1` (default), a starved pool
+`max-wait: 1000ms` is important: if it's `-1` (default), a starved pool
 translates VU pile-up into unbounded queueing rather than fail-fast, and
-tail latency explodes.
+tail latency explodes. A 1 s cap keeps a degenerate pool from silently
+masking a real problem.
+
+If you'd rather size back down: at strict 10k QPS the earlier `64/32/8/100ms`
+values ran without failures too — just with materially higher p95 under
+oversubscription. The bump is essentially free headroom for stress-mode runs
+and multi-replica prod.
 
 ### Connect timeout & command timeout
 
@@ -181,7 +189,7 @@ degrading them.
 
 ## 5. Tomcat + Virtual Threads
 
-Current settings (`application.yml:54`):
+Current settings (`application.yml`, `spring.threads.virtual` and `server.tomcat`):
 
 ```yaml
 spring:

@@ -17,10 +17,31 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import com.urlshortner.service.NotFoundException;
+import com.urlshortner.exception.NotFoundException;
+import com.urlshortner.exception.RateLimitExceededException;
 
 import jakarta.servlet.http.HttpServletRequest;
 
+/**
+ * Central mapping from application exceptions to RFC 7807 problem-detail responses.
+ *
+ * <p>All error responses across the API funnel through this class so the JSON shape
+ * ({@code application/problem+json} with {@code type}, {@code title}, {@code detail},
+ * {@code instance}, and optional per-error extensions) is uniform. Individual controllers stay
+ * free of try/catch clutter — they throw domain exceptions, and this advice picks them up.
+ *
+ * <p>Status mapping:
+ * <ul>
+ *   <li>{@code MethodArgumentNotValidException}   → 400 with per-field details</li>
+ *   <li>{@code NotFoundException}                 → 404</li>
+ *   <li>{@code IllegalStateException}
+ *       (incl. {@code ShortCodeConflictException}) → 409</li>
+ *   <li>{@code IllegalArgumentException}          → 400</li>
+ *   <li>{@code RateLimitExceededException}        → 429 with {@code Retry-After} header
+ *       and {@code limit}/{@code resetEpochSeconds} extensions</li>
+ *   <li>Anything else                             → 500, logged at ERROR</li>
+ * </ul>
+ */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 

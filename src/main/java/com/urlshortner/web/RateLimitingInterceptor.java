@@ -12,6 +12,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
+import com.urlshortner.exception.RateLimitExceededException;
 import com.urlshortner.service.RedisCacheService;
 import com.urlshortner.service.RedisCacheService.RateLimitDecision;
 import com.urlshortner.service.ServiceMetrics;
@@ -40,6 +41,9 @@ public class RateLimitingInterceptor implements HandlerInterceptor {
     private static final String HDR_REMAINING = "X-RateLimit-Remaining";
     private static final String HDR_RESET = "X-RateLimit-Reset";
     private static final String HDR_SCOPE = "X-RateLimit-Scope";
+    private static final String HDR_FORWARDED_FOR = "X-Forwarded-For";
+    private static final String HDR_REAL_IP = "X-Real-IP";
+    private static final String UNKNOWN_CLIENT_ID = "unknown";
 
     private final RedisCacheService redisCacheService;
     private final ServiceMetrics metrics;
@@ -108,12 +112,12 @@ public class RateLimitingInterceptor implements HandlerInterceptor {
     private String resolveClientIp(HttpServletRequest request) {
         String remoteAddr = request.getRemoteAddr();
         if (remoteAddr == null || remoteAddr.isBlank()) {
-            return "unknown";
+            return UNKNOWN_CLIENT_ID;
         }
         if (!trustedProxies.contains(remoteAddr)) {
             return remoteAddr;
         }
-        String forwarded = request.getHeader("X-Forwarded-For");
+        String forwarded = request.getHeader(HDR_FORWARDED_FOR);
         if (forwarded != null && !forwarded.isBlank()) {
             int comma = forwarded.indexOf(',');
             String head = (comma > 0 ? forwarded.substring(0, comma) : forwarded).trim();
@@ -121,7 +125,7 @@ public class RateLimitingInterceptor implements HandlerInterceptor {
                 return head;
             }
         }
-        String realIp = request.getHeader("X-Real-IP");
+        String realIp = request.getHeader(HDR_REAL_IP);
         if (realIp != null && !realIp.isBlank()) {
             return realIp.trim();
         }

@@ -243,22 +243,25 @@ endpoint via `curl`.
 
 ```
 urlshortner/
-├── build.gradle                       Spring Boot 4 build, Guava, springdoc, flyway
+├── build.gradle                       Spring Boot 4.1 build, Guava, springdoc, flyway
 ├── settings.gradle                    Foojay resolver auto-provisions JDK 21
 ├── docker-compose.yml                 mysql + redis + app; healthchecks; volumes
+├── docker-compose.override.yml        loadtest profile: k6 service + rate-limit lift
 ├── Dockerfile                         Multi-stage build; curl for healthcheck
-├── .env.example                       Externalize DB creds & feature flags
 ├── CLAUDE.md                          Project brief — the original spec
 ├── SETUP.md                           First-time setup, ports, troubleshooting
-├── HELP.md                            Spring Boot's generated help notes
 ├── docs/
+│   ├── PERFORMANCE.md                 Tuning guide, k6 usage, symptom→fix triage
 │   └── redis-keys.md                  Full Redis key strategy (cache, clicks, rate limit, stampede lock)
+├── k6/
+│   └── load-test.js                   SLA + stress load-test harness
 ├── src/main/
 │   ├── java/com/urlshortner/
 │   │   ├── UrlshortnerApplication.java
 │   │   ├── config/WebMvcConfig.java              Interceptor registration + exclusions
 │   │   ├── domain/UrlEntity.java                 JPA entity, no setters (write-once)
 │   │   ├── dto/                                  CreateUrlRequest, ShortUrlResponse, UrlStatsResponse
+│   │   ├── exception/                            NotFoundException, ShortCodeConflictException, RateLimitExceededException
 │   │   ├── repository/UrlRepository.java         Spring Data JPA
 │   │   ├── service/
 │   │   │   ├── UrlService.java                   Shorten + resolve + stats
@@ -267,12 +270,11 @@ urlshortner/
 │   │   │   ├── ExpiredUrlSweeper.java            @Scheduled DELETE of past-expiry rows
 │   │   │   ├── ServiceMetrics.java               Prometheus counters + timers
 │   │   │   ├── CacheKeys.java                    Central key namespace
-│   │   │   ├── ReservedAliases.java              healthz/actuator/… blocklist
-│   │   │   └── (exceptions)                      NotFoundException, ShortCodeConflictException
+│   │   │   └── ReservedAliases.java              healthz/actuator/… blocklist
 │   │   ├── util/
 │   │   │   ├── Base62Encoder.java                Stateless, thread-safe
 │   │   │   ├── UrlNormalizer.java                Canonicalization
-│   │   │   ├── UrlHashGenerator.java             MurmurHash + Base62 + salt
+│   │   │   ├── UrlHashGenerator.java             MurmurHash3-128 + Base62 + salt
 │   │   │   ├── UrlValidator.java                 SSRF + scheme guard
 │   │   │   └── HostResolver.java                 Bounded-latency DNS with fake seam
 │   │   └── web/
@@ -280,15 +282,14 @@ urlshortner/
 │   │       ├── HealthController.java             /healthz with real probes
 │   │       ├── RateLimitingInterceptor.java      Per-scope, XFF-aware
 │   │       ├── RateLimitScope.java               enum { CREATE, REDIRECT, STATS }
-│   │       ├── GlobalExceptionHandler.java       RFC 7807 mapping
-│   │       └── RateLimitExceededException.java
+│   │       └── GlobalExceptionHandler.java       RFC 7807 mapping
 │   └── resources/
 │       ├── application.yml                       Base config
 │       ├── application-docker.yml                Docker-profile overrides
 │       ├── db/migration/V{1,2,3}__*.sql          Flyway migrations
 │       ├── openapi.yaml                          Hand-authored API contract
 │       └── static/index.html                     Dev workbench UI
-└── src/test/                                     135 tests
+└── src/test/                                     ~72 test methods across 10 test classes
 ```
 
 ---
@@ -365,13 +366,13 @@ and `Retry-After` + `X-RateLimit-*` headers for 429s.
 
 ## Testing
 
-135 tests across three tiers:
+~72 test methods across 10 test classes, three tiers:
 
 | Tier | What it covers | Runs |
 |---|---|---|
-| **Unit** (~90) | `Base62Encoder`, `UrlNormalizer`, `UrlHashGenerator`, `UrlValidator` (SSRF/scheme), `UrlValidatorDnsMockTest` (DNS mocked), `UrlServiceTest` (Mockito), `ClickAnalyticsServiceTest` (DB-failure re-queue) | No Docker |
-| **Focused integration** (~2) | `RedisCacheServiceTest` — stampede-protection + negative-cache round-trip against a real Redis container | Testcontainers Redis |
-| **End-to-end** (~13) | `UrlShortenerIntegrationTest` (E2E + rate-limit + XFF spoof + concurrent shorten + expiry) and `UrlShortenerTrustedProxyIntegrationTest` (positive XFF path) | Testcontainers MySQL + Redis |
+| **Unit** (~53) | `Base62Encoder` (8), `UrlNormalizer` (9), `UrlHashGenerator` (9), `UrlValidator` (9) + `UrlValidatorDnsMockTest` (5, DNS mocked), `UrlService` (11, Mockito), `ClickAnalyticsService` (2, DB-failure re-queue) | No Docker |
+| **Focused integration** (3) | `RedisCacheServiceTest` — stampede-protection + negative-cache round-trip against a real Redis container | Testcontainers Redis |
+| **End-to-end** (~15) | `UrlShortenerIntegrationTest` (12: E2E + rate-limit + XFF spoof + concurrent shorten + expiry) and `UrlShortenerTrustedProxyIntegrationTest` (3: positive XFF path) | Testcontainers MySQL + Redis |
 
 Run them:
 

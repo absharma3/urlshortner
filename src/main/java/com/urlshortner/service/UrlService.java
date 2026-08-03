@@ -16,6 +16,8 @@ import com.urlshortner.domain.UrlEntity;
 import com.urlshortner.dto.CreateUrlRequest;
 import com.urlshortner.dto.ShortUrlResponse;
 import com.urlshortner.dto.UrlStatsResponse;
+import com.urlshortner.exception.NotFoundException;
+import com.urlshortner.exception.ShortCodeConflictException;
 import com.urlshortner.repository.UrlRepository;
 import com.urlshortner.util.UrlHashGenerator;
 import com.urlshortner.util.UrlNormalizer;
@@ -200,13 +202,16 @@ public class UrlService {
     /**
      * Persists via {@link org.springframework.data.jpa.repository.JpaRepository#saveAndFlush}
      * so a UNIQUE-constraint violation surfaces synchronously as
-     * {@link DataIntegrityViolationException}. On failure we {@link EntityManager#clear()} to
-     * evict the poisoned transient entity from the persistence context — otherwise subsequent
-     * {@code save()} calls in the same transaction would re-flush it and throw again.
+     * {@link DataIntegrityViolationException} instead of at the end-of-transaction flush.
      *
-     * <p>The outer {@code @Transactional(noRollbackFor = DataIntegrityViolationException.class)}
-     * keeps the Spring tx alive across the caught exception so the salt loop can retry within
-     * the same transactional scope.
+     * <p>There is deliberately no {@code @Transactional} annotation on this method or on
+     * {@code shortenUrl}: {@code saveAndFlush} opens its own short-lived Hibernate transaction
+     * that is fully rolled back on the constraint violation, and the caller's salt-loop then
+     * retries in a completely fresh transaction. The rationale is captured at length in the
+     * class-level comment on {@code shortenUrl} — MySQL's gap-lock deadlock detection rolls
+     * back the transaction at the DB level regardless of Spring's {@code noRollbackFor}, so an
+     * outer {@code @Transactional} would only trade a clean retry for a
+     * {@code TransactionSuspendedException} on the second call.
      */
     private UrlEntity persistEntity(String shortCode, String normalizedUrl, Instant expiresAt) {
         // saveAndFlush opens its own short-lived tx (no method-level @Transactional). On DIVE or

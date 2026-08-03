@@ -24,11 +24,13 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
-    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.6'
     implementation 'org.springframework.boot:spring-boot-starter-flyway'
     implementation 'org.flywaydb:flyway-mysql'
-    implementation 'org.apache.commons:commons-pool2'
     implementation 'com.google.guava:guava:33.0.0-jre'
+    // Auto-configured by Spring Boot at runtime; the app code doesn't compile against
+    // Springdoc annotations or Lettuce pooling directly.
+    runtimeOnly 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.6'
+    runtimeOnly 'org.apache.commons:commons-pool2'
     runtimeOnly 'com.mysql:mysql-connector-j'
     runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
     testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'

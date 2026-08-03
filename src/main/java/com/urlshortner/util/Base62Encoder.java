@@ -4,6 +4,17 @@ import java.util.Objects;
 
 import org.springframework.stereotype.Component;
 
+/**
+ * Base62 codec used to render short codes. The alphabet is
+ * {@code 0-9A-Za-z} — 62 case-sensitive characters — so a numeric value in {@code [0, 62ⁿ)} maps
+ * to exactly {@code n} characters when zero-padded.
+ *
+ * <p>Stateless and thread-safe: no instance state, all constants are {@code static final}.
+ * Callers should reuse the single Spring-managed bean rather than instantiate.
+ *
+ * <p>{@link #encode} accepts any non-negative {@code long} (up to {@code Long.MAX_VALUE}, which
+ * encodes to 11 chars); {@link #decode} rejects any character outside the alphabet.
+ */
 @Component
 public final class Base62Encoder {
 

@@ -15,16 +15,28 @@ import org.springframework.web.util.UriComponentsBuilder;
 import com.urlshortner.dto.CreateUrlRequest;
 import com.urlshortner.dto.ShortUrlResponse;
 import com.urlshortner.dto.UrlStatsResponse;
+import com.urlshortner.exception.NotFoundException;
 import com.urlshortner.service.ClickAnalyticsService;
-import com.urlshortner.service.NotFoundException;
 import com.urlshortner.service.UrlService;
 
 import jakarta.validation.Valid;
 
+/**
+ * REST surface for the shortener. Three endpoints:
+ * <ul>
+ *   <li>{@code POST /api/v1/urls} — shorten a URL. Returns 201 with the {@link ShortUrlResponse}
+ *       body and a {@code Location} header pointing at the stats endpoint for the new code.</li>
+ *   <li>{@code GET /{shortCode}} — redirect (302). The hot path — cache-served, no DB read on
+ *       hit. Fire-and-forgets a click to {@link ClickAnalyticsService}.</li>
+ *   <li>{@code GET /api/v1/urls/{shortCode}/stats} — totals for a code.</li>
+ * </ul>
+ *
+ * <p>Error mapping (404 / 409 / 429 / 400) lives in {@code GlobalExceptionHandler}, not here —
+ * this class is deliberately thin. The canonical wire contract is
+ * {@code src/main/resources/openapi.yaml}.
+ */
 @RestController
 public class UrlController {
-
-    private static final String SHORT_CODE_PATTERN = "[a-zA-Z0-9]{4,32}";
 
     private final UrlService urlService;
     private final ClickAnalyticsService clickAnalyticsService;
@@ -49,7 +61,7 @@ public class UrlController {
         return ResponseEntity.created(location).body(response);
     }
 
-    @GetMapping("/{shortCode:" + SHORT_CODE_PATTERN + "}")
+    @GetMapping("/{shortCode:" + CreateUrlRequest.SHORT_CODE_PATTERN + "}")
     public ResponseEntity<Void> redirect(@PathVariable String shortCode) {
         String target = urlService.getOriginalUrl(shortCode)
                 .orElseThrow(() -> new NotFoundException(shortCode));
@@ -60,7 +72,7 @@ public class UrlController {
                 .build();
     }
 
-    @GetMapping("/api/v1/urls/{shortCode:" + SHORT_CODE_PATTERN + "}/stats")
+    @GetMapping("/api/v1/urls/{shortCode:" + CreateUrlRequest.SHORT_CODE_PATTERN + "}/stats")
     public UrlStatsResponse stats(@PathVariable String shortCode) {
         return urlService.getStats(shortCode);
     }

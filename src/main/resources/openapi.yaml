@@ -72,7 +72,7 @@ paths:
               schema:
                 type: string
                 format: uri
-                example: https://api.urlshortener.example.com/api/v1/urls/abc123
+                example: https://api.urlshortener.example.com/api/v1/urls/sK9xN4pQ
             X-RateLimit-Limit:
               $ref: '#/components/headers/XRateLimitLimit'
             X-RateLimit-Remaining:
@@ -86,8 +86,8 @@ paths:
               examples:
                 created:
                   value:
-                    shortCode: abc123
-                    shortUrl: https://sho.rt/abc123
+                    shortCode: sK9xN4pQ
+                    shortUrl: https://api.urlshortener.example.com/sK9xN4pQ
                     originalUrl: https://example.com/some/very/long/path?with=query
                     createdAt: '2026-08-02T12:34:56Z'
                     expiresAt: null
@@ -167,7 +167,7 @@ paths:
               examples:
                 stats:
                   value:
-                    shortCode: abc123
+                    shortCode: sK9xN4pQ
                     originalUrl: https://example.com/some/very/long/path?with=query
                     totalClicks: 42891
                     createdAt: '2026-01-15T09:12:00Z'
@@ -212,7 +212,7 @@ components:
         minLength: 4
         maxLength: 32
         pattern: '^[a-zA-Z0-9]{4,32}$'
-        example: abc123
+        example: sK9xN4pQ
 
   headers:
     XRateLimitLimit:
@@ -281,12 +281,12 @@ components:
           minLength: 4
           maxLength: 32
           pattern: '^[a-zA-Z0-9]{4,32}$'
-          example: abc123
+          example: sK9xN4pQ
         shortUrl:
           type: string
           format: uri
           description: The fully qualified short URL to be shared with end users.
-          example: https://sho.rt/abc123
+          example: https://api.urlshortener.example.com/sK9xN4pQ
         originalUrl:
           type: string
           format: uri
@@ -314,7 +314,7 @@ components:
           minLength: 4
           maxLength: 32
           pattern: '^[a-zA-Z0-9]{4,32}$'
-          example: abc123
+          example: sK9xN4pQ
         originalUrl:
           type: string
           format: uri
@@ -456,7 +456,7 @@ components:
                 title: Not Found
                 status: 404
                 detail: No active short URL exists for the supplied code.
-                instance: /abc123
+                instance: /sK9xN4pQ
 
     Conflict:
       description: The supplied `customAlias` is already taken.

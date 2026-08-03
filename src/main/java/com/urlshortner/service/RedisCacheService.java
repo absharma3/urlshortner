@@ -25,8 +25,9 @@ import org.springframework.stereotype.Service;
  *   <li><b>Fail-open by default.</b> Redis is treated as a best-effort accelerator, not a source
  *       of truth. Any {@link DataAccessException} bubbling out of the Redis client is caught,
  *       logged at WARN, and translated into a safe default: empty for reads, no-op for writes,
- *       "allow" for rate-limit decisions. The only exception is {@link #allocateId()}, which is
- *       authoritative and throws {@link RedisUnavailableException} on failure.</li>
+ *       "allow" for rate-limit decisions. There is no authoritative Redis path — since short
+ *       codes are derived deterministically from the URL via {@code UrlHashGenerator}, a Redis
+ *       outage never blocks a shorten, only degrades cache and rate-limit behavior.</li>
  *   <li><b>No leakage of Redis primitives.</b> Callers receive Java-shaped values ({@link Optional},
  *       {@link Set}, records) and never touch {@code redisTemplate} directly. This keeps single-
  *       flight locking, TTL calculation, and Lua scripting concerns local to this class (SRP).</li>
@@ -55,6 +56,9 @@ public class RedisCacheService {
             "redis.call('SADD', KEYS[2], ARGV[1])\n" +
                     "return redis.call('INCR', KEYS[1])",
             Long.class);
+
+    /** How many wait-and-retry rounds a lock-loser will make before falling through to the loader. */
+    private static final int STAMPEDE_MAX_RETRIES = 20;
 
     private final StringRedisTemplate redisTemplate;
     private final ServiceMetrics metrics;
@@ -106,9 +110,6 @@ public class RedisCacheService {
      * <p>Under a hot-key stampede at 10k QPS, one thread hits the DB and the other 9,999 pick up
      * the newly-cached value on their retry.
      */
-    /** How many wait-and-retry rounds a lock-loser will make before falling through to the loader. */
-    private static final int STAMPEDE_MAX_RETRIES = 20;
-
     public Optional<String> getOrLoadRedirect(String shortCode, Supplier<Optional<LoadedUrl>> loader) {
         CachedRedirect cached = readRedirect(shortCode);
         if (cached.isHit()) {

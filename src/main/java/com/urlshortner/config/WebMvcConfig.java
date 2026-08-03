@@ -6,6 +6,12 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import com.urlshortner.web.RateLimitingInterceptor;
 
+/**
+ * Registers {@link RateLimitingInterceptor} for {@code /**} while excluding paths that must
+ * never be rate-limited — actuator (operator access, must always work), {@code /healthz}
+ * (liveness probe), Swagger UI, and the servlet error dispatcher (double-counting an already-
+ * failed request against the caller's quota is unfriendly).
+ */
 @Configuration
 public class WebMvcConfig implements WebMvcConfigurer {
 

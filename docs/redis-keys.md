@@ -9,8 +9,9 @@ the scheduled click-flush job together.
 - **Delimiter:** `:` between segments.
 - **Encoding:** short codes are strict alphanumeric Base62 (`^[a-zA-Z0-9]{4,32}$`),
   stored case-sensitively (matches MySQL `utf8mb4_bin`). Auto-generated codes are
-  derived deterministically from `MurmurHash3(normalizedUrl [+ "_salt_" + n])`
-  and padded to exactly 6 characters.
+  derived deterministically from `MurmurHash3-128(normalizedUrl [+ "_salt_" + n])`
+  — the low 64 bits are reduced mod 62⁸ and Base62-encoded, then left-padded with
+  `'0'` to the configured length (`app.short-code.length`, default **8**).
 - **Time:** all TTLs in seconds. Timestamps are Unix epoch milliseconds.
 - Constants live in `com.urlshortner.service.CacheKeys`.
 
@@ -50,7 +51,7 @@ Flushed to MySQL by a `@Scheduled` job.
 | Record op | atomic Lua: `SADD clicks:active {code}` + `INCR clicks:{code}` |
 | TTL | none — persisted until the scheduled flush consumes the delta |
 
-**Flush algorithm (`@Scheduled(fixedDelay = 5000)`):**
+**Flush algorithm** (`@Scheduled(fixedDelayString = "${app.clicks.flush-fixed-delay-ms:5000}")`; default 5 s):
 1. `SPOP clicks:active {batch-size}` — atomically remove up to N codes with pending deltas. O(1) per element, **no keyspace scan**.
 2. For each code, `GETDEL clicks:{code}` → delta (atomic read-and-clear).
 3. Single `JdbcTemplate.batchUpdate("UPDATE urls SET total_clicks = total_clicks + ? WHERE short_code = ?", batch)` — one MySQL round trip.

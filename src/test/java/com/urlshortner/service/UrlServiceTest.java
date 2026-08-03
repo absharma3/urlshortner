@@ -26,6 +26,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import com.urlshortner.domain.UrlEntity;
 import com.urlshortner.dto.CreateUrlRequest;
 import com.urlshortner.dto.ShortUrlResponse;
+import com.urlshortner.exception.ShortCodeConflictException;
 import com.urlshortner.repository.UrlRepository;
 import com.urlshortner.util.Base62Encoder;
 import com.urlshortner.util.HostResolver;

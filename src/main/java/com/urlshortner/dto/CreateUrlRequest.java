@@ -24,10 +24,17 @@ public record CreateUrlRequest(
         @Pattern(regexp = "^https?://.+", message = "originalUrl must be an absolute http(s) URL")
         String originalUrl,
 
-        @Pattern(regexp = "^[a-zA-Z0-9]{4,32}$",
+        @Pattern(regexp = "^" + CreateUrlRequest.SHORT_CODE_PATTERN + "$",
                 message = "customAlias must match ^[a-zA-Z0-9]{4,32}$")
         String customAlias,
 
         @Future
         Instant expiresAt) {
+
+    /**
+     * Shared regex body (no anchors) for a valid short code — both auto-generated codes and
+     * user-supplied {@code customAlias} values must match. {@code UrlController} uses this in the
+     * {@code @GetMapping} path pattern to route only well-shaped codes to the redirect handler.
+     */
+    public static final String SHORT_CODE_PATTERN = "[a-zA-Z0-9]{4,32}";
 }

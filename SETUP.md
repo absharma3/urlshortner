@@ -92,16 +92,19 @@ Virtual threads are enabled by default via `spring.threads.virtual.enabled=true`
 
 1. Foojay resolves and downloads JDK 21 into `~/.gradle/jdks/` (only if missing — subsequent runs skip this).
 2. Gradle compiles and starts the Spring Boot app.
-3. Flyway applies `V1__init_schema.sql` to the `urlshortener` database.
-4. `IdSequenceInitializer` seeds `url:id:seq` in Redis to `max(238328, MAX(id))` so the first Base62 code has ≥4 characters.
+3. Flyway applies `V1__init_schema.sql`, `V2__…`, `V3__…` to the `urlshortener` database.
+4. Hibernate opens a HikariCP pool; Lettuce warms its Redis connections.
 5. Tomcat binds to `0.0.0.0:8080`.
 
-You'll see a log line like:
+You'll see log lines like:
 ```
 Started UrlshortnerApplication in 2.0 seconds
-ID sequence 'url:id:seq' aligned; MySQL max id=238328, Redis counter=238328
 Tomcat started on port 8080 (http)
 ```
+
+Short codes are derived deterministically from the URL via `UrlHashGenerator` (MurmurHash3-128 →
+low 64 bits mod 62⁸ → Base62, padded to 8 chars) — there is no Redis-based ID allocator on the
+write path any more.
 
 Stop the app with `Ctrl-C`.
 
@@ -149,14 +152,15 @@ Quick sanity check with `curl`:
 curl -s -X POST http://localhost:8080/api/v1/urls \
   -H 'Content-Type: application/json' \
   -d '{"originalUrl":"https://example.com/some/very/long/path"}'
-# → 201 with {"shortCode":"1001","shortUrl":"http://localhost:8080/1001",...}
+# → 201 with {"shortCode":"fEFx6do7","shortUrl":"http://localhost:8080/fEFx6do7",...}
+# (shortCode is 8 chars of [a-zA-Z0-9], derived from the URL via MurmurHash3-128 + Base62.)
 
 # Follow the redirect (verbose)
-curl -sI http://localhost:8080/1001
+curl -sI http://localhost:8080/fEFx6do7
 # → HTTP/1.1 302 + Location: https://example.com/some/very/long/path
 
 # Look up stats
-curl -s http://localhost:8080/api/v1/urls/1001/stats
+curl -s http://localhost:8080/api/v1/urls/fEFx6do7/stats
 ```
 
 ---
@@ -169,7 +173,7 @@ curl -s http://localhost:8080/api/v1/urls/1001/stats
 ./gradlew test --tests "com.urlshortner.util.*" --tests "com.urlshortner.service.UrlServiceTest"
 ```
 
-Runs `Base62EncoderTest` (42 tests) and `UrlServiceTest` (8 tests). ~1 second on a warm daemon.
+Runs `Base62EncoderTest` (8 tests) and `UrlServiceTest` (11 tests). ~1 second on a warm daemon.
 
 ### Full test suite including Testcontainers integration tests
 
@@ -177,11 +181,12 @@ Runs `Base62EncoderTest` (42 tests) and `UrlServiceTest` (8 tests). ~1 second on
 ./gradlew check
 ```
 
-Equivalent to `./gradlew test` — runs all 55 tests including `UrlShortenerIntegrationTest`, which:
+Equivalent to `./gradlew test` — runs all ~72 test methods across 10 test classes, including
+`UrlShortenerIntegrationTest`, which:
 
 1. Spins up a `mysql:8.0` and `redis:7-alpine` container via Testcontainers.
 2. Applies Flyway migrations.
-3. Runs the E2E flow (create → redirect → stats), an invalid-payload check, a duplicate-alias 409, and a 101-request rate-limit breach.
+3. Runs the E2E flow (create → redirect → stats), an invalid-payload check, a duplicate-alias 409, and a rate-limit breach.
 
 **Requires Docker to be running.** The integration test class alone takes ~20s (most of it container startup).
 
@@ -301,7 +306,7 @@ Docker daemon isn't reachable. Start Docker Desktop (macOS/Windows) or `sudo sys
 
 ### The dev workbench UI counts against my rate limit
 
-Yes — the rate-limit interceptor matches `/**`. Loading `/` costs 1 request from the per-IP quota (default 100/min). Not a bug; if it's inconvenient during heavy manual testing, either bump `app.ratelimit.limit` in `application.yml` or add `/` and `/index.html` to `WebMvcConfig`'s `excludePathPatterns`.
+Yes — the rate-limit interceptor matches `/**`. Loading `/` costs 1 request from the per-IP quota. The `/` request goes into the `redirect` bucket (default 600/min); creates are 10/min and stats are 60/min. Not a bug; if it's inconvenient during heavy manual testing, either bump the relevant `app.ratelimit.*-limit` in `application.yml` (or override via env, e.g. `APP_RATELIMIT_REDIRECT_LIMIT=100000`) or add `/` and `/index.html` to `WebMvcConfig`'s `excludePathPatterns`.
 
 ---
 
@@ -311,7 +316,7 @@ Yes — the rate-limit interceptor matches `/**`. Loading `/` costs 1 request fr
 |---|---|
 | Format list of all URLs in DB | `docker compose exec mysql mysql -uroot -prootpw urlshortener -e "SELECT id, short_code, original_url, total_clicks FROM urls"` |
 | Inspect current Redis keys | `docker compose exec redis redis-cli --scan` |
-| Peek at the ID counter | `docker compose exec redis redis-cli GET url:id:seq` |
+| Inspect active click counters | `docker compose exec redis redis-cli SMEMBERS clicks:active` |
 | Rebuild without cache | `docker compose build --no-cache app` |
 | Tail app logs only | `docker compose logs -f app` |
 | Full clean + fresh start | `docker compose down -v && docker compose up -d --build` |

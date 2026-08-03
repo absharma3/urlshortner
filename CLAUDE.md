@@ -6,7 +6,7 @@
 
 ## 2. Tech Stack
 - **Language & Runtime:** Java 21 (LTS) with Virtual Threads enabled (`spring.threads.virtual.enabled=true`).
-- **Framework:** Spring Boot 3.x (Spring Web, Spring Data JPA, Spring Data Redis, Spring Validation).
+- **Framework:** Spring Boot 4.1.x (Spring Web, Spring Data JPA, Spring Data Redis, Spring Validation).
 - **Build Tool:** Gradle (Gradle Wrapper `./gradlew`).
 - **Database:** MySQL 8.x (durable persistence, B-Tree indexes on short codes).
 - **Cache & Rate Limiting:** Redis (Lettuce client, connection pooling).
@@ -21,7 +21,7 @@
 - **Open/Closed (OCP):** Use interface-driven design (e.g., `UrlShortenerStrategy`, `RateLimiterService`) to allow swapping algorithms or implementations without changing core callers.
 - **Dependency Inversion (DIP):** Depend on abstractions (interfaces) rather than concrete implementations. Rely on Spring's Dependency Injection.
 - **Don't Repeat Yourself (DRY):** Abstract common functionality (e.g., error handling, cache keys, validation routines) into central utilities or aspect/filter pipelines.
-- **Keep It Simple (KISS):** Avoid over-engineering; leverage Spring Boot 3 / Java 21 features natively before adding external dependencies.
+- **Keep It Simple (KISS):** Avoid over-engineering; leverage Spring Boot 4 / Java 21 features natively before adding external dependencies.
 
 ### RESTful URI Design Standards
 - **Resource-Centric Naming:** Use plural nouns for resource endpoints (e.g., `/api/v1/urls`, not `/api/v1/createUrl`).
