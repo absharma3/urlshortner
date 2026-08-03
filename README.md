@@ -11,6 +11,9 @@ see [`src/main/resources/openapi.yaml`](./src/main/resources/openapi.yaml).
 
 ---
 
+<img width="1700" height="937" alt="Screenshot 2026-08-03 at 11 35 26 AM" src="https://github.com/user-attachments/assets/e1281934-2449-465b-8d65-17ffe07c8231" />
+
+
 ## What it does
 
 Two public flows:
